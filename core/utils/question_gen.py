@@ -1,19 +1,33 @@
 import os
 import json
-from openai import OpenAI
+import google.generativeai as genai
 
-api_key = os.getenv("OPENAI_API_KEY")
+# Pastikan nama environment variable disesuaikan (misal: GEMINI_API_KEY atau GOOGLE_API_KEY)
+api_key = os.getenv("GEMINI_API_KEY") 
 if not api_key:
-    raise ValueError("OPENAI_API_KEY tidak ditemukan! Pastikan sudah diset di environment.")
+    raise ValueError("GEMINI_API_KEY tidak ditemukan! Pastikan sudah diset di environment.")
 
-client = OpenAI(api_key=api_key)
+# 1. Konfigurasi API
+genai.configure(api_key=api_key)
 
-def generate_questions_openai(text):
+# 2. Inisialisasi Model dengan JSON Mode
+# 'response_mime_type' memaksa model hanya mengeluarkan JSON raw, 
+# jadi kita tidak perlu regex/cleaning manual lagi.
+generation_config = {
+    "temperature": 0.2,
+    "response_mime_type": "application/json" 
+}
+
+model = genai.GenerativeModel(
+    model_name="gemini-2.0-flash-lite", 
+    generation_config=generation_config
+)
+
+def generate_questions_gemini(text):
     prompt = f"""
     Buat 5 soal pilihan ganda dari teks berikut.
-    Jawaban HARUS dalam format JSON murni tanpa ```json atau tanda backtick.
-
-    Format:
+    
+    Format JSON yang diinginkan:
     [
       {{
         "question": "...",
@@ -26,22 +40,32 @@ def generate_questions_openai(text):
     {text}
     """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-    )
-
-    raw = response.choices[0].message.content.strip()
-
-    # 🧹 Bersihkan blok markdown (```json ... ```)
-    if raw.startswith("```"):
-        raw = raw.strip("`")
-        raw = raw.replace("json", "", 1).strip()
-        raw = raw.strip("`").strip()
-
     try:
+        # 3. Generate Content
+        response = model.generate_content(prompt)
+        
+        # Karena sudah pakai JSON mode, response.text pasti JSON valid
+        raw = response.text 
+        
+        # Langsung parse ke dictionary
         data = json.loads(raw)
         return data
-    except json.JSONDecodeError:
-        return {"error": "Expecting value: line 1 column 1 (char 0)", "raw": raw}
+
+    except json.JSONDecodeError as e:
+        # Fallback jika model entah kenapa gagal format (sangat jarang di Gemini 1.5)
+        return {"error": "Gagal parsing JSON", "details": str(e), "raw": response.text}
+    except Exception as e:
+        return {"error": "Terjadi kesalahan API", "details": str(e)}
+
+# --- Contoh Penggunaan ---
+if __name__ == "__main__":
+    teks_materi = """
+    Fotosintesis adalah proses yang digunakan oleh tumbuhan, alga, dan bakteri tertentu 
+    untuk mengubah energi cahaya menjadi energi kimia. Energi kimia ini disimpan dalam 
+    ikatan gula karbohidrat. Fotosintesis terjadi di kloroplas, menggunakan klorofil.
+    """
+    
+    result = generate_questions_gemini(teks_materi)
+    
+    # Print hasil (pretty print)
+    print(json.dumps(result, indent=2))
