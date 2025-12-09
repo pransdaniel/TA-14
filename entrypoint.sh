@@ -7,5 +7,5 @@ python manage.py migrate --noinput
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-echo "Starting Gunicorn..."
+echo "DEBUG: Starting custom entrypoint script..."
 exec gunicorn adaptive_engine.wsgi:application --bind 0.0.0.0:8000 --workers 3
