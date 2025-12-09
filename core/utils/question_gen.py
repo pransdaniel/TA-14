@@ -5,13 +5,15 @@ import json
 import google.generativeai as genai
 
 api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY tidak ditemukan!")
+if api_key:
+    genai.configure(api_key=api_key)
 
-genai.configure(api_key=api_key)
-
-# GUNAKAN MODEL INI! (paling stabil + kuota besar)
-model = genai.GenerativeModel(
+# Prepare model only if API key present; otherwise model stays None and
+# generate_questions_gemini will return an error dict when called.
+model = None
+if api_key:
+    # GUNAKAN MODEL INI! (paling stabil + kuota besar)
+    model = genai.GenerativeModel(
     model_name="gemini-2.5-flash-lite-preview-09-2025",  # atau "gemini-1.5-flash-001"
     generation_config={
         "temperature": 0.3,
@@ -39,6 +41,11 @@ model = genai.GenerativeModel(
 )
 
 def generate_questions_gemini(text: str):
+    # Jika model belum dikonfigurasi karena kunci API tidak tersedia,
+    # kembalikan error dalam bentuk dict agar caller (views) bisa menanganinya.
+    if model is None:
+        return {"error": "GEMINI_API_KEY tidak ditemukan"}
+
     prompt = f"""
     Buat 5 soal pilihan ganda dari teks berikut. 
     Setiap soal harus punya 4 opsi (A, B, C, D) dan satu jawaban benar.
