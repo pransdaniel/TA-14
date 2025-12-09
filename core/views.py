@@ -48,7 +48,7 @@ def upload_pdf(request):
 
         return Response({
             "source_id": source.id,
-            "preview": text[:10000] 
+            "preview": text[:100000] 
         })
 
     except Exception as e:

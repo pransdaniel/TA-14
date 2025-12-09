@@ -1,0 +1,11 @@
+Django==5.2.5
+djangorestframework
+gunicorn
+dj-database-url
+psycopg2-binary
+whitenoise
+python-dotenv
+pdfplumber
+pdf2image
+pytesseract
+Pillow

@@ -1,71 +1,81 @@
+# question_gen.py (Versi Fix 100% Work Desember 2025)
+
 import os
 import json
 import google.generativeai as genai
 
-# Pastikan nama environment variable disesuaikan (misal: GEMINI_API_KEY atau GOOGLE_API_KEY)
-api_key = os.getenv("GEMINI_API_KEY") 
+api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    raise ValueError("GEMINI_API_KEY tidak ditemukan! Pastikan sudah diset di environment.")
+    raise ValueError("GEMINI_API_KEY tidak ditemukan!")
 
-# 1. Konfigurasi API
 genai.configure(api_key=api_key)
 
-# 2. Inisialisasi Model dengan JSON Mode
-# 'response_mime_type' memaksa model hanya mengeluarkan JSON raw, 
-# jadi kita tidak perlu regex/cleaning manual lagi.
-generation_config = {
-    "temperature": 0.2,
-    "response_mime_type": "application/json" 
-}
-
+# GUNAKAN MODEL INI! (paling stabil + kuota besar)
 model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash-lite", 
-    generation_config=generation_config
+    model_name="gemini-2.5-flash-lite-preview-09-2025",  # atau "gemini-1.5-flash-001"
+    generation_config={
+        "temperature": 0.3,
+        "response_mime_type": "application/json",  # ini SUPPORT di model ini
+    },
+    # Tambahkan ini biar tidak kena blokir safety
+    safety_settings=[
+        {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+        },
+        {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "threshold": "BLOCK_NONE"
+        },
+        {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE"
+        },
+        {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "threshold": "BLOCK_NONE"
+        },
+    ]
 )
 
-def generate_questions_gemini(text):
+def generate_questions_gemini(text: str):
     prompt = f"""
-    Buat 5 soal pilihan ganda dari teks berikut.
-    
-    Format JSON yang diinginkan:
+    Buat 5 soal pilihan ganda dari teks berikut. 
+    Setiap soal harus punya 4 opsi (A, B, C, D) dan satu jawaban benar.
+
+    Kembalikan dalam format JSON array of objects seperti ini:
     [
       {{
-        "question": "...",
-        "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-        "answer": "A"
+        "question": "Pertanyaan di sini?",
+        "options": ["A. Pilihan 1", "B. Pilihan 2", "C. Pilihan 3", "D. Pilihan 4"],
+        "answer": "B"
       }}
     ]
 
-    Teks:
+    Teks materi:
     {text}
     """
 
     try:
-        # 3. Generate Content
         response = model.generate_content(prompt)
+        raw_json = response.text.strip()
         
-        # Karena sudah pakai JSON mode, response.text pasti JSON valid
-        raw = response.text 
-        
-        # Langsung parse ke dictionary
-        data = json.loads(raw)
+        # Kadang ada markdown ```json ... ``` → bersihkan dulu
+        if raw_json.startswith("```json"):
+            raw_json = raw_json[7:]
+        if raw_json.endswith("```"):
+            raw_json = raw_json[:-3]
+            
+        data = json.loads(raw_json)
         return data
 
     except json.JSONDecodeError as e:
-        # Fallback jika model entah kenapa gagal format (sangat jarang di Gemini 1.5)
-        return {"error": "Gagal parsing JSON", "details": str(e), "raw": response.text}
+        return {"error": "JSON parse gagal", "raw": response.text, "details": str(e)}
     except Exception as e:
-        return {"error": "Terjadi kesalahan API", "details": str(e)}
+        return {"error": "API Error", "details": str(e)}
 
-# --- Contoh Penggunaan ---
+# Test langsung
 if __name__ == "__main__":
-    teks_materi = """
-    Fotosintesis adalah proses yang digunakan oleh tumbuhan, alga, dan bakteri tertentu 
-    untuk mengubah energi cahaya menjadi energi kimia. Energi kimia ini disimpan dalam 
-    ikatan gula karbohidrat. Fotosintesis terjadi di kloroplas, menggunakan klorofil.
-    """
-    
-    result = generate_questions_gemini(teks_materi)
-    
-    # Print hasil (pretty print)
-    print(json.dumps(result, indent=2))
+    teks = "Python adalah bahasa pemrograman yang diciptakan oleh Guido van Rossum pada tahun 1991."
+    hasil = generate_questions_gemini(teks)
+    print(json.dumps(hasil, indent=2, ensure_ascii=False))
