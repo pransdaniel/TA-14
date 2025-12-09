@@ -36,7 +36,7 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 # ALLOWED_HOSTS can be provided as comma-separated list in env var
 raw_allowed = os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost")
-ALLOWED_HOSTS = ["*",]
+ALLOWED_HOSTS = ["ta-14.up.railway.app"]
 
 
 # Application definition
