@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'adaptive_engine.wsgi.application'
 # Default to local Postgres if DATABASE_URL not provided
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgres://postgres:root@127.0.0.1:5432/aqg_ver1",
+    "postgresql://postgres:wKhxUzYxGVNQgWkiYjadgWrSiqwclxLf@shinkansen.proxy.rlwy.net:13439/railway",
 )
 DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
