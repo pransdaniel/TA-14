@@ -86,18 +86,14 @@ WSGI_APPLICATION = 'adaptive_engine.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# Default to local Postgres if DATABASE_URL not provided
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgres://postgres:root@127.0.0.1:5432/aqg_ver1",
+)
+DATABASES = {
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
+}
 
 
 # Password validation
