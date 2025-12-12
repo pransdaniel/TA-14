@@ -57,7 +57,7 @@ def upload_pdf(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# --- BAGIAN YANG DIPERBAIKI ---
+# --- BAGIAN YANG DIPERBAIKI ----
 
 @api_view(['POST'])
 def generate_questions(request):
