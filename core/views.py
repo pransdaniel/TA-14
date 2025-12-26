@@ -61,70 +61,55 @@ def upload_pdf(request):
 
 @api_view(['POST'])
 def generate_questions(request):
-    # 1. Ambil data dari request
     source_id = request.data.get("source_id")
-    text = request.data.get("text") # Pastikan key yang dikirim dari frontend adalah 'text'
+    text = request.data.get("text")
+    instructions = request.data.get("instructions", "")   # <-- ini yang paling penting
+    jumlah_soal = request.data.get("jumlah_soal", 5)
 
-    # 2. Validasi input
     if not text:
-        return Response({"error": "Field 'text' diperlukan"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Field 'text' wajib"}, status=400)
+
+    if not instructions.strip():
+        instructions = "Buat 5 soal pilihan ganda dengan 4 opsi (A,B,C,D), satu jawaban benar."
 
     try:
-        # 3. Panggil Gemini
-        # Result sudah berupa List/Dict Python, JANGAN di-json.loads lagi
-        data = generate_questions_gemini(text)
-        
-        # Cek jika util mengembalikan error
-        if isinstance(data, dict) and "error" in data:
-            return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        questions_data = generate_questions_gemini(
+            text=text,
+            prompt_instructions=instructions,
+            num_questions=int(jumlah_soal)
+        )
+
+        if isinstance(questions_data, dict) and "error" in questions_data:
+            return Response(questions_data, status=500)
 
         inserted_count = 0
-        
-        # 4. Looping data untuk disimpan ke DB
-        for q in data:
-            # Handling opsi jawaban: Gemini mengembalikan list ["A...", "B..."]
-            # Kita perlu memecahnya ke kolom option_a, option_b, dst.
-            options = q.get("options", [])
-            
-            # Ambil opsi dengan aman (antisipasi jika opsi kurang dari 4)
-            opt_a = options[0] if len(options) > 0 else ""
-            opt_b = options[1] if len(options) > 1 else ""
-            opt_c = options[2] if len(options) > 2 else ""
-            opt_d = options[3] if len(options) > 3 else ""
-
-            Question.objects.create(
+        for q in questions_data:
+            # Kita simpan secara fleksibel, tergantung jenis soal
+            question_obj = Question.objects.create(
                 source_id=source_id,
-                topic=q.get("topic", "General"), # Default topic jika kosong
-                question=q.get("question", ""),
-                
-                # Mapping options
-                option_a=opt_a,
-                option_b=opt_b,
-                option_c=opt_c,
-                option_d=opt_d,
-                
-                # Mapping kunci jawaban (sesuaikan key dari output Gemini)
-                correct_answer=q.get("answer", "A"), 
-                
-                # Mapping difficulty
-                difficulty=q.get("difficulty_level", 0.5)
+                question=q.get("question", "").strip(),
+                # Untuk pilihan ganda
+                option_a=q.get("options", [""]*4)[0] if "options" in q else "",
+                option_b=q.get("options", [""]*4)[1] if "options" in q else "",
+                option_c=q.get("options", [""]*4)[2] if "options" in q else "",
+                option_d=q.get("options", [""]*4)[3] if "options" in q else "",
+                # Jawaban (fleksibel)
+                correct_answer=q.get("answer") or q.get("answer_key") or "",
+                # Tambahan
+            #     question_type=q.get("type", "pilihan_ganda"),  # bisa diisi model jika mau
+            #     difficulty=q.get("difficulty", "sedang"),
+            #     rubrik=q.get("rubrik", None)  # kalau essay, bisa simpan rubrik di sini
             )
             inserted_count += 1
-            
+
         return Response({
-            "message": "Sukses generate soal",
-            "inserted": inserted_count,
-            "data": data  # Kirim balik data agar bisa dilihat di frontend/postman
+            "message": "Berhasil generate soal",
+            "jumlah": inserted_count,
+            "preview": questions_data[:2]  # tampilkan 2 soal pertama
         })
 
     except Exception as e:
-        # Debugging: print error ke console server
-        print(f"Error Generate: {e}")
-        return Response(
-            {"error": str(e), "hint": "Cek format JSON output Gemini atau struktur model DB"}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
+        return Response({"error": str(e)}, status=500)
 
 @api_view(['GET'])
 def get_questions(request):
