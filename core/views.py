@@ -10,7 +10,7 @@ from rest_framework import status
 from .models import Question, Source
 from .serializers import QuestionSerializer
 # Pastikan nama import sesuai dengan file utils Anda
-from .utils.question_gen import generate_questions_gemini 
+from .utils.question_gen import generate_questions_gemini, extract_question_types, validate_question_types 
 
 # ... (fungsi extract_text_from_pdf dan upload_pdf biarkan saja seperti semula) ...
 def extract_text_from_pdf(path):
@@ -70,9 +70,12 @@ def generate_questions(request):
         return Response({"error": "Field 'text' wajib"}, status=400)
 
     if not instructions.strip():
-        instructions = "Buat 5 soal pilihan ganda dengan 4 opsi (A,B,C,D), satu jawaban benar."
+        instructions = "Buat 5 soal multiple choice dengan 4 opsi (A,B,C,D), satu jawaban benar."
 
     try:
+        # Extract tipe soal yang diizinkan dari instruksi
+        allowed_types = extract_question_types(instructions)
+        
         questions_data = generate_questions_gemini(
             text=text,
             prompt_instructions=instructions,
@@ -82,33 +85,61 @@ def generate_questions(request):
         if isinstance(questions_data, dict) and "error" in questions_data:
             return Response(questions_data, status=500)
 
+        # Validasi: filter hanya soal dengan tipe yang diizinkan
+        validated_questions = validate_question_types(questions_data, allowed_types)
+        
+        if not validated_questions:
+            return Response({
+                "error": "Tidak ada soal yang sesuai dengan instruksi. Tipe yang diizinkan: " + ", ".join(allowed_types),
+                "expected_types": allowed_types,
+                "received_types": [q.get("type", "unknown") for q in questions_data]
+            }, status=400)
+
         inserted_count = 0
-        for q in questions_data:
-            # Kita simpan secara fleksibel, tergantung jenis soal
-            question_obj = Question.objects.create(
-                source_id=source_id,
-                question=q.get("question", "").strip(),
+        for q in validated_questions:
+            # Tentukan tipe soal
+            question_type = q.get("type", "multiple_choice")
+            
+            # Persiapan data umum
+            question_data = {
+                "source_id": source_id,
+                "question": q.get("question", "").strip(),
+                "question_type": question_type,
+            }
+            
+            # Handling berdasarkan tipe soal
+            if question_type == "matching":
+                # Untuk matching: simpan pairs dan answer_key
+                question_data["matching_pairs"] = {
+                    "pairs": q.get("pairs", []),
+                    "answer_key": q.get("answer_key", [])
+                }
+                question_data["correct_answer"] = str(q.get("answer_key", []))
+            else:
                 # Untuk pilihan ganda
-                option_a=q.get("options", [""]*4)[0] if "options" in q else "",
-                option_b=q.get("options", [""]*4)[1] if "options" in q else "",
-                option_c=q.get("options", [""]*4)[2] if "options" in q else "",
-                option_d=q.get("options", [""]*4)[3] if "options" in q else "",
-                # Jawaban (fleksibel)
-                correct_answer=q.get("answer") or q.get("answer_key") or "",
-                # Tambahan
-            #     question_type=q.get("type", "pilihan_ganda"),  # bisa diisi model jika mau
-            #     difficulty=q.get("difficulty", "sedang"),
-            #     rubrik=q.get("rubrik", None)  # kalau essay, bisa simpan rubrik di sini
-            )
+                if "options" in q:
+                    options = q.get("options", [])
+                    question_data["option_a"] = options[0] if len(options) > 0 else ""
+                    question_data["option_b"] = options[1] if len(options) > 1 else ""
+                    question_data["option_c"] = options[2] if len(options) > 2 else ""
+                    question_data["option_d"] = options[3] if len(options) > 3 else ""
+                
+                # Jawaban (essay, isian, atau pilihan ganda)
+                question_data["correct_answer"] = q.get("answer") or q.get("answer_key") or ""
+            
+            question_obj = Question.objects.create(**question_data)
             inserted_count += 1
 
         return Response({
             "message": "Berhasil generate soal",
             "jumlah": inserted_count,
-            "preview": questions_data[:2]  # tampilkan 2 soal pertama
+            "tipe_soal": allowed_types,
+            "preview": validated_questions[:50]
         })
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         return Response({"error": str(e)}, status=500)
 
 @api_view(['GET'])
