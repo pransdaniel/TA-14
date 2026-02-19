@@ -8,6 +8,7 @@ class Source(models.Model):
 class Question(models.Model):
     QUESTION_TYPES = [
         ('multiple_choice', 'Pilihan Ganda'),
+        ('true_false', 'Benar / Salah'),
         ('essay', 'Essay'),
         ('isian', 'Isian Singkat'),
         ('matching', 'Matching'),

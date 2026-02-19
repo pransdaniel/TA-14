@@ -71,6 +71,8 @@ Instruksi dari user (IKUTI DENGAN TEPAT - HANYA TIPE SOAL INI):
 FORMAT JSON berdasarkan tipe soal:
 - multiple_choice: 
   {{"type": "multiple_choice", "question": "...", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "answer": "C"}}
+- true_false:
+  {{"type": "true_false", "question": "...", "answer": "True"}}  # answer must be "True" or "False"
 - essay:
   {{"type": "essay", "question": "...", "answer_key": "Jawaban ideal / poin-poin yang diharapkan..."}}
 - isian (singkat):
@@ -157,9 +159,9 @@ PENTING:
 def extract_question_types(instructions: str):
     """
     Extract tipe-tipe soal yang disebutkan di instruksi.
-    Returns list of valid types: ['multiple_choice', 'essay', 'isian', 'matching']
+    Returns list of valid types: ['multiple_choice', 'true_false', 'essay', 'isian', 'matching']
     """
-    valid_types = ['multiple_choice', 'essay', 'isian', 'matching']
+    valid_types = ['multiple_choice', 'true_false', 'essay', 'isian', 'matching']
     found_types = []
     
     instructions_lower = instructions.lower()
@@ -167,6 +169,7 @@ def extract_question_types(instructions: str):
     # Mapping instruksi ke tipe soal
     type_keywords = {
         'multiple_choice': ['multiple choice', 'pilihan ganda', 'pilihan berganda'],
+        'true_false': ['true/false', 'true false', 'benar salah', 'tf'],
         'essay': ['essay', 'uraian'],
         'isian': ['isian', 'isian singkat', 'short answer', 'jawaban singkat'],
         'matching': ['matching', 'pencocokan', 'pasangkan', 'kesesuaian']

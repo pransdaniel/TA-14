@@ -115,8 +115,17 @@ def generate_questions(request):
                     "answer_key": q.get("answer_key", [])
                 }
                 question_data["correct_answer"] = str(q.get("answer_key", []))
+            elif question_type == "true_false":
+                # Pastikan jawaban hanya True atau False
+                ans = str(q.get("answer", "")).capitalize()
+                if ans not in ["True", "False"]:
+                    ans = "True"  # default jika aneh
+                question_data["correct_answer"] = ans
+                # optional: set options for consistency
+                question_data["option_a"] = "True"
+                question_data["option_b"] = "False"
             else:
-                # Untuk pilihan ganda
+                # Untuk pilihan ganda atau jenis teks lain
                 if "options" in q:
                     options = q.get("options", [])
                     question_data["option_a"] = options[0] if len(options) > 0 else ""
