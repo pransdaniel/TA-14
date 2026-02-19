@@ -48,7 +48,7 @@ if api_key:
 
 def generate_questions_gemini(text: str, prompt_instructions: str = "", num_questions: int = 5):
     """
-    Generate soal sesuai instruksi user, bisa pilihan ganda, essay, isian, matching, dll.
+    Generate soal sesuai instruksi user, bisa pilihan ganda, essay, short answer (isian), matching, dll.
     HANYA generate tipe soal yang disebutkan di instruksi - tidak boleh ada tipe lain!
     """
     if model is None:
@@ -75,8 +75,8 @@ FORMAT JSON berdasarkan tipe soal:
   {{"type": "true_false", "question": "...", "answer": "True"}}  # answer must be "True" or "False"
 - essay:
   {{"type": "essay", "question": "...", "answer_key": "Jawaban ideal / poin-poin yang diharapkan..."}}
-- isian (singkat):
-  {{"type": "isian", "question": "...", "answer": "jawaban singkat yang benar"}}
+- short_answer (isian singkat):
+  {{"type": "short_answer", "question": "...", "answer": "jawaban singkat yang benar"}}
 - matching (HARUS 4 keyword dengan 4 explanation):
   {{"type": "matching", "question": "Pasangkan istilah berikut dengan penjelasannya:", "pairs": [{{"keyword": "keyword1", "explanation": "penjelasan1"}}, {{"keyword": "keyword2", "explanation": "penjelasan2"}}, {{"keyword": "keyword3", "explanation": "penjelasan3"}}, {{"keyword": "keyword4", "explanation": "penjelasan4"}}], "answer_key": ["penjelasan1", "penjelasan2", "penjelasan3", "penjelasan4"]}}
 
@@ -159,9 +159,9 @@ PENTING:
 def extract_question_types(instructions: str):
     """
     Extract tipe-tipe soal yang disebutkan di instruksi.
-    Returns list of valid types: ['multiple_choice', 'true_false', 'essay', 'isian', 'matching']
+    Returns list of valid types: ['multiple_choice', 'true_false', 'essay', 'short_answer', 'matching']
     """
-    valid_types = ['multiple_choice', 'true_false', 'essay', 'isian', 'matching']
+    valid_types = ['multiple_choice', 'true_false', 'essay', 'short_answer', 'matching']
     found_types = []
     
     instructions_lower = instructions.lower()
@@ -171,7 +171,7 @@ def extract_question_types(instructions: str):
         'multiple_choice': ['multiple choice', 'pilihan ganda', 'pilihan berganda'],
         'true_false': ['true/false', 'true false', 'benar salah', 'tf'],
         'essay': ['essay', 'uraian'],
-        'isian': ['isian', 'isian singkat', 'short answer', 'jawaban singkat'],
+        'short_answer': ['isian', 'isian singkat', 'short answer', 'jawaban singkat'],
         'matching': ['matching', 'pencocokan', 'pasangkan', 'kesesuaian']
     }
     

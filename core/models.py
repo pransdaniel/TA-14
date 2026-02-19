@@ -9,8 +9,8 @@ class Question(models.Model):
     QUESTION_TYPES = [
         ('multiple_choice', 'Pilihan Ganda'),
         ('true_false', 'Benar / Salah'),
+        ('short_answer', 'Isian Singkat'),
         ('essay', 'Essay'),
-        ('isian', 'Isian Singkat'),
         ('matching', 'Matching'),
     ]
     

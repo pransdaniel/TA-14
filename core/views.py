@@ -108,6 +108,9 @@ def generate_questions(request):
             }
             
             # Handling berdasarkan tipe soal
+            # convert legacy type 'isian' -> 'short_answer'
+            if question_type == 'isian':
+                question_type = 'short_answer'
             if question_type == "matching":
                 # Untuk matching: simpan pairs dan answer_key
                 question_data["matching_pairs"] = {
@@ -125,7 +128,7 @@ def generate_questions(request):
                 question_data["option_a"] = "True"
                 question_data["option_b"] = "False"
             else:
-                # Untuk pilihan ganda atau jenis teks lain
+                # Untuk pilihan ganda atau jenis teks lain (essay/short_answer)
                 if "options" in q:
                     options = q.get("options", [])
                     question_data["option_a"] = options[0] if len(options) > 0 else ""
@@ -133,7 +136,7 @@ def generate_questions(request):
                     question_data["option_c"] = options[2] if len(options) > 2 else ""
                     question_data["option_d"] = options[3] if len(options) > 3 else ""
                 
-                # Jawaban (essay, isian, atau pilihan ganda)
+                # Jawaban (essay, short answer, atau pilihan ganda)
                 question_data["correct_answer"] = q.get("answer") or q.get("answer_key") or ""
             
             question_obj = Question.objects.create(**question_data)
