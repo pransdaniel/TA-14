@@ -96,17 +96,7 @@ DATABASE_URL = os.environ.get(
     "mysql://root:@localhost:3306/adaptive_db",
 )
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get("MYSQLDATABASE"),
-        'USER': os.environ.get("MYSQLUSER"),
-        'PASSWORD': os.environ.get("MYSQLPASSWORD"),
-        'HOST': os.environ.get("MYSQLHOST"),
-        'PORT': os.environ.get("MYSQLPORT"),
-        'OPTIONS': {
-            'ssl': {'ssl-mode': 'REQUIRED'},
-        }
-    }
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
 }
 
 
