@@ -5,7 +5,7 @@ import re
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
-model = genai.GenerativeModel("gemini-2.5-flash-lite-preview-09-2025")
+model = genai.GenerativeModel("gemini-3.1-flash-lite-preview")
 
 
 def gemini_score(reference, essay):
