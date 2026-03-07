@@ -1,21 +1,13 @@
-# question_gen.py (Versi Fix 100% Work Desember 2025)
-
-import os
 import json
-from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
+from django.conf import settings
 
-# Load environment variables
-dotenv_path = Path(__file__).resolve().parent.parent.parent / '.env'
-load_dotenv(dotenv_path)
-
-api_key = os.getenv("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
+api_key = getattr(settings, "GEMINI_API_KEY", None)
 
 model = None
 if api_key:
+    genai.configure(api_key=api_key)
     model = genai.GenerativeModel(
         model_name="gemini-3.1-flash-lite-preview",
         generation_config={
