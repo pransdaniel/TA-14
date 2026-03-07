@@ -19,14 +19,25 @@ def evaluate(request):
     # TF-IDF Similarity
     similarity = calculate_similarity(reference, essay)
 
-    # Gemini Scoring
+    # Gemini Scoring with fallback
     ai_score = gemini_score(reference, essay)
 
-    # Final Score
-    final_score = (0.4 * similarity) + (0.6 * ai_score)
+    if ai_score is not None:
+        # Final Score with both similarity and AI score
+        final_score = (0.4 * similarity) + (0.6 * ai_score)
+        response_data = {
+            "similarity": similarity,
+            "gemini_score": ai_score,
+            "final_score": final_score
+        }
+    else:
+        # If both Gemini API keys are limited, use similarity only
+        final_score = similarity
+        response_data = {
+            "similarity": similarity,
+            "gemini_score": None,
+            "final_score": final_score,
+            "note": "Both Gemini API keys reached limit, using cosine similarity only"
+        }
 
-    return Response({
-        "similarity": similarity,
-        "gemini_score": ai_score,
-        "final_score": final_score
-    })
+    return Response(response_data)

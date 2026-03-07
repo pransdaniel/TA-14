@@ -22,8 +22,9 @@ load_dotenv(BASE_DIR / '.env')
 
 import dj_database_url
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
 
 
 # Quick-start development settings - unsuitable for production
