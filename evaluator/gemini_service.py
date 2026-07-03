@@ -20,7 +20,7 @@ def gemini_score(reference, essay):
             model = genai.GenerativeModel("gemini-3.1-flash-lite-preview")
             
             prompt = f"""
-            Anda adalah dosen yang menilai jawaban mahasiswa.
+            Anda adalah seorang pengajar yang akan menilai jawaban mahasiswa secara objektif, adil, dan akurat berdasarkan Referensi Jawaban yang diberikan.
 
             Referensi:
             {reference}

@@ -13,13 +13,11 @@ from .utils.question_gen import (
     generate_questions_gemini,
     extract_question_types,
     validate_question_types,
-    PROMPT_BY_TYPE,       # ← tambahan import
+    PROMPT_BY_TYPE, 
 )
 
 
-# ─────────────────────────────────────────────────────────────
 #  HELPERS
-# ─────────────────────────────────────────────────────────────
 
 def extract_text_from_pdf(path):
     text = ""
@@ -37,9 +35,7 @@ def extract_text_from_pdf(path):
     return text
 
 
-# ─────────────────────────────────────────────────────────────
 #  UPLOAD PDF
-# ─────────────────────────────────────────────────────────────
 
 @api_view(['POST'])
 def upload_pdf(request):
@@ -72,9 +68,7 @@ def upload_pdf(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# ─────────────────────────────────────────────────────────────
 #  GENERATE QUESTIONS
-# ─────────────────────────────────────────────────────────────
 
 @api_view(['POST'])
 def generate_questions(request):
@@ -86,36 +80,25 @@ def generate_questions(request):
     if not text:
         return Response({"error": "Field 'text' wajib diisi"}, status=400)
 
-    # ── 1. Tentukan tipe yang diizinkan ───────────────────────
-    allowed_types = extract_question_types(instructions)
-    # allowed_types sudah fallback ke ['short_answer'] jika instruksi kosong
 
-    # ── 2. Bangun combined prompt dari SEMUA tipe yang ditemukan
-    #       Inilah penyebab utama error sebelumnya:
-    #       instruksi mentah dikirim langsung → Gemini pakai nama tipe sesukanya
+    allowed_types = extract_question_types(instructions)
+
     combined_prompt = "\n\n".join(
         PROMPT_BY_TYPE[t] for t in allowed_types if t in PROMPT_BY_TYPE
     )
 
-    # ── 3. Hitung total soal yang diminta
-    #       Kalikan jumlah_soal dengan jumlah tipe agar tiap tipe
-    #       mendapat kuota, lalu kita trim di langkah validasi
     total_to_generate = jumlah_soal * len(allowed_types)
 
     try:
-        # ── 4. Generate ───────────────────────────────────────
         questions_data = generate_questions_gemini(
             text=text,
-            prompt_instructions=combined_prompt,   # ← combined, bukan instructions mentah
+            prompt_instructions=combined_prompt,
             num_questions=total_to_generate,
         )
 
         if isinstance(questions_data, dict) and "error" in questions_data:
             return Response(questions_data, status=500)
 
-        # ── 5. Validasi & filter tipe ─────────────────────────
-        #       normalize_type() sudah dipanggil di dalam
-        #       generate_questions_gemini, jadi tipe sudah bersih
         validated_questions = validate_question_types(questions_data, allowed_types)
 
         if not validated_questions:
@@ -126,15 +109,13 @@ def generate_questions(request):
                 ),
                 "expected_types": allowed_types,
                 "received_types": [q.get("type", "unknown") for q in questions_data],
-                "raw_sample": questions_data[:3],   # bantu debug di Postman
+                "raw_sample": questions_data[:3], 
             }, status=400)
 
-        # ── 6. Simpan ke database ─────────────────────────────
         inserted_count = 0
         for q in validated_questions:
             question_type = q.get("type", "short_answer")
 
-            # Normalisasi legacy alias yang mungkin lolos
             if question_type == "isian":
                 question_type = "short_answer"
 
@@ -170,7 +151,6 @@ def generate_questions(request):
                 question_data["correct_answer"] = q.get("answer", "")
 
             else:
-                # essay / short_answer
                 question_data["correct_answer"] = (
                     q.get("answer") or q.get("answer_key") or ""
                 )
@@ -191,9 +171,7 @@ def generate_questions(request):
         return Response({"error": str(e)}, status=500)
 
 
-# ─────────────────────────────────────────────────────────────
 #  GET QUESTIONS
-# ─────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
 def get_questions(request):

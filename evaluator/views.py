@@ -16,15 +16,12 @@ def evaluate(request):
     reference = serializer.validated_data["reference"]
     essay = serializer.validated_data["essay"]
 
-    # TF-IDF Similarity
-    similarity = calculate_similarity(reference, essay)
+    similarity = round(calculate_similarity(reference, essay), 2)
 
-    # Gemini Scoring with fallback
-    ai_score = gemini_score(reference, essay)
+    ai_score = round(gemini_score(reference, essay), 2)
 
     if ai_score is not None:
-        # Final Score with both similarity and AI score
-        final_score = (0.4 * similarity) + (0.6 * ai_score)
+        final_score = round((0.4 * similarity) + (0.6 * ai_score), 2)
         response_data = {
             "similarity": similarity,
             "gemini_score": ai_score,

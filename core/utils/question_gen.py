@@ -9,9 +9,9 @@ model = None
 if api_key:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(
-        model_name="gemini-3.1-flash-lite-preview",
+        model_name="gemini-2.5-flash-lite",
         generation_config={
-            "temperature": 0.3,
+            "temperature": 0.5,
             "response_mime_type": "application/json",
         },
         safety_settings=[
